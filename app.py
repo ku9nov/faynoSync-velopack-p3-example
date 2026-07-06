@@ -28,6 +28,11 @@ CHANNEL = os.environ.get("FAYNOSYNC_CHANNEL", "nightly")  # display only; real c
 # BASE (garage/CDN, :3902) serves the feed + TUF metadata. Telemetry/report hit the
 # faynoSync API itself (gin, :9000 by default) — a different host, hence a separate base.
 API_BASE = os.environ.get("FAYNOSYNC_API_BASE", "http://localhost:9000")
+# By default the feed is fetched from the static CDN (BASE). Set ASK_API=true to
+# hit the faynoSync API (API_BASE) instead, which serves the same feed shape but
+# computed dynamically (respects intermediate for the given
+# localVersion+id that Velopack appends to the request).
+ASK_API = os.environ.get("ASK_API", "").lower() == "true"
 TUF_ENABLED = os.environ.get("TUF_ENABLED", "").lower() == "true"
 TELEMETRY_ENABLED = os.environ.get("TELEMETRY_ENABLED", "").lower() == "true"
 REPORTS_ENABLED = os.environ.get("REPORTS_ENABLED", "").lower() == "true"
@@ -87,7 +92,8 @@ def build_update_url():
     override = os.environ.get("UPDATE_URL")
     if override:
         return override
-    return f"{BASE}/velopack/{OWNER}/{APP}/{detect_platform()}/{detect_arch()}"
+    base = API_BASE if ASK_API else BASE
+    return f"{base}/velopack/{OWNER}/{APP}/{detect_platform()}/{detect_arch()}"
 
 
 def _describe_update(info):
@@ -115,6 +121,15 @@ def check_and_update():
     if TELEMETRY_ENABLED:
         telemetry.send_beacon(API_BASE, OWNER, APP, VERSION, CHANNEL,
                               detect_platform(), detect_arch(), info is None, DEVICE_ID)
+
+    # Demo only: this example app never actually crashes, so emit a synthetic
+    # crash report to exercise /reports/ingest end-to-end when REPORTS_ENABLED=true.
+    _report_event("crash", "synthetic_demo_crash", {
+        "note": "synthetic crash emitted by the example app to demonstrate reporting",
+        "signal": "SIGSEGV",
+        "thread": "main",
+        "fault_address": "0x0",
+    })
 
     if info is None:
         log.info("Already on the latest version (%s).", VERSION)
@@ -147,12 +162,16 @@ def check_and_update():
         return
 
 
-def _report_failure(reason, target, error):
+def _report_event(event_type, reason, details=None):
     if not REPORTS_ENABLED:
         return
     report.send_report(API_BASE, REPORT_KEY, DEVICE_ID, APP, VERSION, CHANNEL,
-                       detect_platform(), detect_arch(), "update_failure", reason,
-                       details={"from_version": VERSION, "target_version": target, "error": error})
+                       detect_platform(), detect_arch(), event_type, reason, details=details)
+
+
+def _report_failure(reason, target, error):
+    _report_event("update_failure", reason,
+                  {"from_version": VERSION, "target_version": target, "error": error})
 
 
 def main():

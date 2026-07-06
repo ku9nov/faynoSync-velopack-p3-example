@@ -8,6 +8,10 @@ The app self-checks for updates on launch: it reads the Velopack feed from fayno
 optionally binds the artifacts it's about to install to faynoSync's TUF root of trust,
 then downloads and applies the update in place.
 
+> For a full end-to-end walkthrough (stand up faynoSync, publish this app, and exercise
+> updates, downgrades, TUF, intermediate builds, telemetry, and reports), see
+> **[USAGE.md](USAGE.md)**.
+
 ## Layout
 
 | File | Purpose |
@@ -80,6 +84,7 @@ All config is env-overridable; defaults target a local dev faynoSync.
 |-----|---------|-------|
 | `FAYNOSYNC_BASE` | `http://cb-faynosync-s3-public.web.garage.localhost:3902` | Garage/CDN host. Serves the Velopack feed **and** TUF metadata. |
 | `FAYNOSYNC_API_BASE` | `http://localhost:9000` | faynoSync API (gin). Telemetry + reports hit this — a **different host** from the feed. |
+| `ASK_API` | off | `true` fetches the feed from `API_BASE` (dynamically computed, respects intermediate for the requested `localVersion`) instead of the static CDN. Needed for [intermediate builds](USAGE.md#8-intermediate-builds--optional). |
 | `FAYNOSYNC_OWNER` | `admin` | Feed path component. |
 | `FAYNOSYNC_APP` | `HelloVelopack` | Feed path component; also the per-user data dir name. |
 | `FAYNOSYNC_CHANNEL` | `nightly` | **Display only.** The real channel comes from the installed package (baked at `vpk pack`). |
