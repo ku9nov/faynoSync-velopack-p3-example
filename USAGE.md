@@ -14,23 +14,33 @@ For a config/env reference, see [README.md](README.md).
 ```bash
 git clone https://github.com/ku9nov/faynoSync.git
 cd faynoSync
-docker compose up --build
+docker compose up --build -d
 docker compose exec -T backend /usr/bin/faynoSync migrate up
 ```
 
-This brings up all required services:
+Run the migration once the stack is healthy (`docker compose ps`). This brings up all
+required services:
 
 - API — http://localhost:9000
-- Frontend — http://localhost:3000
+- Dashboard — http://localhost:9000/dashboard/ (embedded into the API binary)
+- Garage (S3) public links — http://cb-faynosync-s3-public.web.garage.localhost:3902
+- Garage admin UI — http://localhost:3909
 
-We work from the frontend for now.
+The bundled `.env.example` enables TUF, telemetry, and reports, so everything below works
+without extra server config.
+
+To run the API and dashboard from source instead, see
+[Local Setup — from source](https://faynosync.com/docs/getting-started/local-deploy?local-setup=source).
+The dashboard dev server is then at http://localhost:3000/dashboard/.
+
+We work from the dashboard for now.
 
 ## 2. Dashboard setup
 
-Open http://localhost:3000.
+Open http://localhost:9000/dashboard/signup.
 
-1. **Register** — fill the fields. For `secretKey` use the local-dev default
-   `UHp3aKb40fwpoKZluZByWQ`.
+1. **Register** — fill the fields. For **Secret Key** use the `API_KEY` from
+   `.env.example`: `insecure-dev-api-key`.
 2. **Log in.**
 3. **Create App** → name `HelloVelopack` → Create.
 4. **Channels** → Create Channel → name `nightly`.
